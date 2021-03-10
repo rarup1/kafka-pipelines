@@ -1,7 +1,7 @@
 
 # Kafka Database Streaming
 
-This project demonstrates how one can use a Kafka cluster to set up a streaming service from a relational database (MySQL) into a another relational DB (Postgres), noSQL DB (MongoDB) and S3 bucket. This allows you to read once using Kafka's JDBC Source Connector to populate a Kafka Topic per table in Kafka is the perfect solution for a low latency, real time solution.
+This project demonstrates how one can use a Kafka cluster to set up a streaming service from a relational database (MySQL) into a another relational DB (Postgres), noSQL DB (MongoDB) and S3 bucket. This allows you to read once using Kafka's JDBC Source Connector to populate a Kafka Topic per table which can be propogated to other applications and systems. Kafka is the perfect solution for a low latency, real time solution.
 
 We will use the JDBC Source and Sink connectors that are availablce at confluent hub in order to create our producers and consumers from the relational databases.
 
@@ -17,7 +17,7 @@ Load your env variables `source .env`
 
 ## Begin all Services
 
-` docker-compose up -d `
+`docker-compose up -d`
 
 - Zookeeper (confluent): This keeps everything ticking together
 - Schema Registry (confluent)
@@ -30,7 +30,9 @@ Load your env variables `source .env`
 - MongoDB (target)
 
 
-One of the important learning point is understanding how to download further connectors from the confluent hub or a 3rd party. These must be downloaded into our kafka-connect serivce. The Mongo and Redshift connectors are both examples of these. I am using the docker-compose command in order to download these upon deployment.
+# Installing further connectors
+
+One of the important learning point is understanding how to download additional connectors from the confluent hub or a 3rd party (debezium). These must be downloaded into our kafka-connect serivce. The Mongo and Redshift connectors are both examples of these. I am using the docker-compose command in order to download these upon deployment.
 
 Here is the snippet from our docker-compose.yml
 
@@ -54,7 +56,7 @@ command:
 
 ## Configure source connector (incremental and update)
 
-There are two types of connectors in Kafka; Source and Sink. We will first configure our source connector to read from our source database (MySQL) into our kafka broker. Run the following command once all services are up and running(usually takes 2 minutes)
+There are two types of connectors in Kafka; Source and Sink. We will first configure our source connector to read from our source database (MySQL) into our kafka broker. Run the following command once all services are up and running (usually takes 2 minutes)
 
 ```
   curl -X POST \
@@ -80,7 +82,7 @@ In our docker-compose MySQL service bash script we have already added one table 
 
 We have chosen the mode timestamp + incremental so both updates to existing rows and new rows are upserted. It is important that your incrementing (id) and timstamp column (updated_at) are explicitlyy 'default not null' or else this connector will fail.
 
-## Check the connector status
+### Check the connector status
 
 use jq to beautify your responses. This will need to be downloaded if not already on your system. Mac users can use `brew install jq`.
 
@@ -125,6 +127,7 @@ curl -X POST http://localhost:8083/connectors -H "Content-Type: application/json
         }
         }'
 ```
+### Check the sink connector status
 
 Check the status: `curl -s -X GET http://localhost:8083/connectors/sink-pg/status | jq`
 
@@ -138,8 +141,10 @@ Increase poll interval to five minutes to batch load into our source instead of 
   http://localhost:8083/connectors/sink-pg/config
 ```
 
+I usually open the postgres database on my pSQL client to check that the data is flowing in but you can use the CLI too by accessing `docker exec -it kafka-mysql psql -uadmin -p`.
 
-## Add a second source table.
+
+## Add a second source table
 
 To prove that our Source connector will auto generate topics for each table within our mysql 'source' database we will add another table `source.second_table`.
 
@@ -170,7 +175,7 @@ INSERT INTO source.second_table(name, date_field, decimal_field)
 
 ## Show that schema changes are picked up in the Avro Messages
 
-Run `docker exec -it kafka-mysql mysql -uroot -p`
+Run your docker mysql instance if you haven't already: `docker exec -it kafka-mysql mysql -uroot -p`
 
 Now run the following SQL statement:
 ```
@@ -183,10 +188,12 @@ SET additional_column = 1 WHERE additional_column IS NULL;
 
 Run `ctrl+d` to quit mysql terminal
 
+Check in your Postgres target database and your Kafka broker (using Kafdrop) to check the schema changes have been reflected correctly. 
+
 
 ### Simulate a data stream
 
-To simulate a real application, I use data generator to load fake data into our mysql source table.
+To simulate a real application, I use a data generator to load fake data into our mysql source table.
 
 1. If not already installed: `pip3 install virtualenv`
 2. Set up py env: `virtualenv pyenv`
@@ -195,15 +202,18 @@ To simulate a real application, I use data generator to load fake data into our 
 5. Beging loading`python3 generate_data.py`
 
 This will start loading data every second into our source.first_table. Check kafdrop to ensure this is happening.
+You should see the data instantly load into your source and target databases.
 
 
 ### Set up Mongo DB sink
 
-Again we will use the mongo service set up in our docker-compose.yml file
+Mongo is a useful noSQL database storage. Ideal for applications that are growing rapidly where a schema would be too restrictive. We will use our docker mongo service; kafka-mongo for this demonstration.
+
 We use the avro converter to ensure that mongo can read the Avro formated topics.
 
+execute the following API request to create our mongo sink connector.
 ```
-curl -X PUT http://localhost:8083/connectors/sink-mongodb-local/config -H "Content-Type: application/json" -d ' {
+curl -X PUT http://localhost:8083/connectors/sink-mongodb/config -H "Content-Type: application/json" -d ' {
         "connector.class":"com.mongodb.kafka.connect.MongoSinkConnector",
         "tasks.max":"1",
         "topics":"mysql-source-first_table",
@@ -261,12 +271,12 @@ Some notable properties:
 - `format.class`: data format. You can choose from `JSON`, `Avro` and `Parquet`
 
 
-So there it is, all the infrastructure needed to locally manage a Kafka cluster. This can all be scaled horizontally and other services can be used such as Ksql to enhance Kafka. I will save that for my next demo.
+So there it is, all the infrastructure needed to locally manage a Kafka cluster. This can all be scaled horizontally and other services can be used such as Ksql to enhance Kafka. I will explore KSQL in my next repo.
 
 
 ### Tear everything down
 
-` docker-compose down` Will end all services in our yml file.
+`docker-compose down` Will end all services in our yml file.
 
 If you want to get rid of all containers to free up space ensure to prune:
-` docker system prune `
+`docker system prune`
