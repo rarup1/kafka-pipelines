@@ -30,9 +30,9 @@ Load your env variables `source .env`
 - MongoDB (target)
 
 
-# Installing further connectors
+### Installing further connector plugins
 
-One of the important learning point is understanding how to download additional connectors from the confluent hub or a 3rd party (debezium). These must be downloaded into our kafka-connect serivce. The Mongo and Redshift connectors are both examples of these. I am using the docker-compose command in order to download these upon deployment.
+One of the important learning points is understanding how to download additional connectors from the confluent hub or a 3rd party (debezium). These must be downloaded into our kafka-connect serivce. The Mongo and Redshift connectors are both examples of these. I am using the docker-compose command in order to download these upon deployment.
 
 Here is the snippet from our docker-compose.yml
 
@@ -54,9 +54,15 @@ command:
         /etc/confluent/docker/run 
 ```
 
+### Check which plugins are available
+
+
+**Check plugins by calling REST API** : `curl localhost:8083/connector-plugins | jq`  
+This should show our mongo and redshift connectors that are downloaded from the confluent hub in the initial commmand in our docker-compose. These are saved to '/usr/share/confluent-hub-components'  and '/usr/local/share/kafka/plugins' which are added to our connect_plugin_path so Kafka knows where to look for plugins. The JDBC plugin comes by default with the confluent platform (cp-kafka-connect). One can easily install salesforce source/sink connectors from confluent hub and many others.
+
 ## Configure source connector (incremental and update)
 
-There are two types of connectors in Kafka; Source and Sink. We will first configure our source connector to read from our source database (MySQL) into our kafka broker. Run the following command once all services are up and running (usually takes 2 minutes)
+There are two types of connectors in Kafka; Source and Sink. We will first configure our source connector to poll from our source database (MySQL) and write into our Kafka broker. Run the following command once all services are up and running (usually takes 2 minutes)
 
 ```
   curl -X POST \
@@ -85,9 +91,6 @@ We have chosen the mode timestamp + incremental so both updates to existing rows
 ### Check the connector status
 
 use jq to beautify your responses. This will need to be downloaded if not already on your system. Mac users can use `brew install jq`.
-
-**Check plugins** : `curl localhost:8083/connector-plugins | jq`  
-This should show our mongo and redshift connectors that are downloaded from the confluent hub in the initial commmand in our docker-compose. These are saved to '/usr/share/confluent-hub-components'  and '/usr/local/share/kafka/plugins' which are added to our connect_plugin_path so Kafka knows where to look for plugins. The JDBC plugin comes by default with the confluent platform (cp-kafka-connect). One can easily install salesforce source/sink connectors from confluent hub and many others.
 
 **Status of connector**: `curl -s -X GET http://localhost:8083/connectors/mysql_source/status | jq`
 
