@@ -9,8 +9,8 @@ We will use the JDBC Source and Sink connectors that are available by default in
 
 Add your own S3 variables to a new file named .env in the root of this directory.
 
-AWS_ACCESS_KEY_ID=<ENTER YOUR ACCESS KEY ID>
-AWS_SECRET_ACCESS_KEY=<ENTER YOUR ACCESS KEY>
+- AWS_ACCESS_KEY_ID=ACCESS KEY ID
+- AWS_SECRET_ACCESS_KEY=ACCESS KEY
 
 Run `set -a`
 Load your env variables `source .env`
