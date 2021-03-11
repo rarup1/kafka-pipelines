@@ -3,7 +3,7 @@
 
 This project demonstrates how one can use a Kafka cluster to set up a streaming service from a relational database (MySQL) into a another relational DB (Postgres), noSQL DB (MongoDB) and S3 bucket. This allows you to read once using Kafka's JDBC Source Connector to populate a Kafka Topic per table which can be propogated to other applications and systems. Kafka is the perfect solution for a low latency, real time solution.
 
-We will use the JDBC Source and Sink connectors that are availablce at confluent hub in order to create our producers and consumers from the relational databases.
+We will use the JDBC Source and Sink connectors that are available by default in Kafka Connect in order to create our producers and consumers for the MySQL and Postgres. We will download the mongo and redshift connectors from the confluent hub. I don't use the redshift connector in practise.
 
 ## Set up secret ENV variables
 
