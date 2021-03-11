@@ -15,7 +15,7 @@ AWS_SECRET_ACCESS_KEY=<ENTER YOUR ACCESS KEY>
 Run `set -a`
 Load your env variables `source .env`
 
-## Begin all Services
+## Begin all services
 
 `docker-compose up -d`
 
@@ -56,11 +56,10 @@ command:
 
 ### Check which plugins are available
 
-
 **Check plugins by calling REST API** : `curl localhost:8083/connector-plugins | jq`  
 This should show our mongo and redshift connectors that are downloaded from the confluent hub in the initial commmand in our docker-compose. These are saved to '/usr/share/confluent-hub-components'  and '/usr/local/share/kafka/plugins' which are added to our connect_plugin_path so Kafka knows where to look for plugins. The JDBC plugin comes by default with the confluent platform (cp-kafka-connect). One can easily install salesforce source/sink connectors from confluent hub and many others.
 
-## Configure source connector (incremental and update)
+## Configure source JDBC connector 
 
 There are two types of connectors in Kafka; Source and Sink. We will first configure our source connector to poll from our source database (MySQL) and write into our Kafka broker. Run the following command once all services are up and running (usually takes 2 minutes)
 
@@ -102,7 +101,7 @@ open http://localhost:9000/. This is an open source UI built to connect kafka an
 This will show strange characters as we have opted to use Avro formatting. But it is useful to debug.
 
 
-## Configure Sink JDBC Connector
+## Configure sink JDBC connector
 
 Now we are happy that we are populating messages within our kafka cluster let's go ahead and set up a Sink connector to Postgres. 
 
@@ -147,9 +146,9 @@ Increase poll interval to five minutes to batch load into our source instead of 
 I usually open the postgres database on my pSQL client to check that the data is flowing in but you can use the CLI too by accessing `docker exec -it kafka-mysql psql -uadmin -p`.
 
 
-## Add a second source table
+## Test adding a table to source
 
-To prove that our Source connector will auto generate topics for each table within our mysql 'source' database we will add another table `source.second_table`.
+To prove that our source connector will auto generate topics for each table within our mysql 'source' database we will add another table `source.second_table`.
 
 Run `docker exec -it kafka-mysql mysql -uroot -p`
 
@@ -176,7 +175,7 @@ INSERT INTO source.second_table(name, date_field, decimal_field)
                ('jamie', '2020-01-05', 12345.2454);
 ```
 
-## Show that schema changes are picked up in the Avro Messages
+## Test schema changes to source
 
 Run your docker mysql instance if you haven't already: `docker exec -it kafka-mysql mysql -uroot -p`
 
@@ -194,7 +193,7 @@ Run `ctrl+d` to quit mysql terminal
 Check in your Postgres target database and your Kafka broker (using Kafdrop) to check the schema changes have been reflected correctly. 
 
 
-### Simulate a data stream
+## Simulate a data stream
 
 To simulate a real application, I use a data generator to load fake data into our mysql source table.
 
@@ -204,11 +203,11 @@ To simulate a real application, I use a data generator to load fake data into ou
 4. Activate env:`source pyenv/bin/activate`
 5. Beging loading`python3 generate_data.py`
 
-This will start loading data every second into our source.first_table. Check kafdrop to ensure this is happening.
-You should see the data instantly load into your source and target databases.
+This will start loading data every second into our `source.first_table`. Check kafdrop to ensure this is happening.
+You should see the data instantly load into your so`urce and target databases.
 
 
-### Set up Mongo DB sink
+## Configure Mongo DB sink connector
 
 Mongo is a useful noSQL database storage. Ideal for applications that are growing rapidly where a schema would be too restrictive. We will use our docker mongo service; kafka-mongo for this demonstration.
 
@@ -242,7 +241,7 @@ This should play back all messages from the topic: mysql-source-first_table
 4. `ctrl+d` to quit
 
 
-### Set up S3 Sink
+## Configure S3 sink connector
 
 Finally, to write data to S3 it is pretty straight forward too. You will need to setup environment variables: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the `docker-compose-kafka.yml` file. After that you can create a S3 connector using the following configs:
 
